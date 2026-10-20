@@ -1,0 +1,232 @@
+<title>Appian to MineOS Vendor Lifecycle</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column, wide parity matrix in its own scroller, status chips carry the verdicts */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --fg: #1b2230;
+  --muted: #5b6577;
+  --line: #dde1e8;
+  --accent: #2f5bd3;
+  --native-bg: #e3f4ea; --native-fg: #1d6b3e;
+  --build-bg: #fdf0d9; --build-fg: #8a5a00;
+  --gap-bg: #fbe4e2; --gap-fg: #a2302a;
+  --part-bg: #e6ecfb; --part-fg: #2f4fa8;
+  --f-display: "Fraunces", Georgia, serif;
+  --f-body: "Public Sans", -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161d; --surface: #1a2029; --fg: #e6e9ef; --muted: #9aa3b2; --line: #2c3440; --accent: #8aa8ff;
+  --native-bg: #173826; --native-fg: #8fe0b0;
+  --build-bg: #3a2c10; --build-fg: #f3c56b;
+  --gap-bg: #3d1b19; --gap-fg: #f3a29c;
+  --part-bg: #1c2a4d; --part-fg: #a9bfff;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #12161d; --surface: #1a2029; --fg: #e6e9ef; --muted: #9aa3b2; --line: #2c3440; --accent: #8aa8ff;
+  --native-bg: #173826; --native-fg: #8fe0b0;
+  --build-bg: #3a2c10; --build-fg: #f3c56b;
+  --gap-bg: #3d1b19; --gap-fg: #f3a29c;
+  --part-bg: #1c2a4d; --part-fg: #a9bfff;
+  color-scheme: dark; }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 40px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 44px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--f-display); font-weight: 600; font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 600; font-size: 24px; margin: 0; text-wrap: balance; }
+h3 { font-size: 15px; margin: 0; font-weight: 700; }
+p { margin: 0; max-width: 70ch; }
+section { display: grid; gap: 16px; }
+.lede { font-size: 17px; color: var(--muted); max-width: 68ch; }
+ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 75ch; }
+.chip { display: inline-block; font-family: var(--f-mono); font-size: 11px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+.native { background: var(--native-bg); color: var(--native-fg); }
+.build { background: var(--build-bg); color: var(--build-fg); }
+.gap { background: var(--gap-bg); color: var(--gap-fg); }
+.part { background: var(--part-bg); color: var(--part-fg); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); align-items: center; }
+.legend span.item { display: inline-flex; gap: 6px; align-items: center; }
+
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.summary div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.summary b { font-size: 14px; }
+.summary p { font-size: 14px; color: var(--muted); }
+
+.scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 860px; font-size: 13.5px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; background: var(--bg); position: sticky; top: 0; }
+tr.group td { background: var(--bg); font-weight: 700; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+td:first-child { font-weight: 600; width: 17%; }
+td:last-child { width: 9%; }
+tbody tr:last-child td { border-bottom: 0; }
+
+.flow { display: grid; gap: 0; border-left: 2px solid var(--line); margin-left: 6px; }
+.step { position: relative; padding: 0 0 18px 22px; display: grid; gap: 4px; }
+.step::before { content: ""; position: absolute; left: -7px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+.step h3 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.step p { font-size: 14px; color: var(--muted); }
+
+.recipes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.recipe { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.recipe .trig { font-family: var(--f-mono); font-size: 12px; color: var(--accent); }
+.recipe p { font-size: 14px; color: var(--muted); }
+
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+.two > div { display: grid; gap: 10px; align-content: start; min-width: 0; }
+ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; max-width: 75ch; }
+code { font-family: var(--f-mono); font-size: 12.5px; background: var(--bg); border: 1px solid var(--line); padding: 0 4px; border-radius: 3px; }
+.note { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Meeting prep · 21 Oct 2026 · Replacing Appian for vendor onboarding</div>
+  <h1>Appian to MineOS: vendor onboarding and offboarding parity</h1>
+  <p class="lede">Appian is a low-code BPM platform, so the client's vendor onboarding is an app someone built on it. MineOS is a packaged third-party risk product. Out of the box it covers the privacy, security and risk part of the vendor lifecycle. The Integration Builder connects procurement, ERP and IT systems. Mine builds those flows and the client configures them.</p>
+</header>
+
+<section>
+  <h2>Bottom line</h2>
+  <div class="summary">
+    <div><b>Where MineOS wins</b><p>Prebuilt vendor, DPIA, TIA, DORA, NIS2 and offboarding templates. External vendor collaboration, AI autofill from trust-center data and Panorays cyber ratings. Shadow-IT discovery and ROPA/data-map linkage. None of this has to be built or maintained.</p></div>
+    <div><b>Where we close it with Integration Builder</b><p>Intake from procurement tools (Zip, Coupa, ServiceNow, Jira). Push approved vendors to the ERP vendor master. Ticketing, Slack and Teams notifications. Offboarding hand-offs to IT and finance.</p></div>
+    <div><b>Where Appian may be ahead</b><p>A free-form BPMN designer and multi-level approval chains with SLA timers. Native ERP and RPA. Any sanctions, KYB or banking checks they built. Confirm what the client actually uses before treating any of these as a gap.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Parity matrix</h2>
+  <div class="legend">
+    <span class="item"><span class="chip native">Native</span> out of the box</span>
+    <span class="item"><span class="chip part">Partial</span> native, narrower than Appian</span>
+    <span class="item"><span class="chip build">Build</span> Integration Builder / API</span>
+    <span class="item"><span class="chip gap">Gap</span> not offered or partner tool</span>
+  </div>
+  <div class="scroller">
+  <table>
+    <thead><tr><th>Capability</th><th>Appian (platform / typical build)</th><th>MineOS out of the box</th><th>MineOS with Integration Builder / API</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr class="group"><td colspan="5">Intake and request</td></tr>
+      <tr><td>New vendor request</td><td>Custom intake form in a Site, or a Portal for vendor self-registration (anonymous only)</td><td>Software/vendor request inside the portal; requester can be linked to the system record</td><td>Intake from Zip, Coupa, ServiceNow or Jira creates the vendor via public API and attaches the request as a form submission</td><td><span class="chip part">Partial</span></td></tr>
+      <tr><td>Vendor master record</td><td>Record type built by the team</td><td>System/vendor inventory with catalog enrichment (owner, BUs, data types, certifications, trust center, ToS)</td><td>Create via API by domain (<code>AddCatalogSystem</code>) or as custom system</td><td><span class="chip native">Native</span></td></tr>
+      <tr><td>Custom fields</td><td>Unlimited (up to 100 per record type)</td><td>Custom fields and custom layouts on the vendor record</td><td>Public API cannot write custom fields today (internal API only)</td><td><span class="chip part">Partial</span></td></tr>
+
+      <tr class="group"><td colspan="5">Due diligence</td></tr>
+      <tr><td>Questionnaires</td><td>Built per app; no library</td><td>Template library: Vendor, Third-party DPIA, TIA, PIA, LIA, DORA ICT criticality and RoI, NIS2, NIST CSF, PCI DSS, HIPAA, ESG, multi-framework. Custom templates with conditional logic</td><td>Create assessment from template via API</td><td><span class="chip native">Native</span></td></tr>
+      <tr><td>Vendor answers questionnaire</td><td>Portal with encrypted links, or vendor accounts on a Site (Portals can't identify a logged-in user)</td><td>Email invite to an authenticated collaborator view, scoped sections, submit notifies owner</td><td>Invite collaborators via API</td><td><span class="chip native">Native</span></td></tr>
+      <tr><td>Document extraction / AI</td><td>AI Skills (W-9, COI, contracts), Agent Studio on Advanced/Premium</td><td>AI autofill of vendor and assessment answers from enrichment, trust center and uploaded docs; suggestions reviewed or auto-approved by rule</td><td>Trigger autofill via API</td><td><span class="chip native">Native</span></td></tr>
+      <tr><td>Cyber risk rating</td><td>Integration to a ratings provider</td><td>Panorays security rating and report (assets, tests, dark web, cyber news)</td><td>n/a</td><td><span class="chip native">Native</span></td></tr>
+      <tr><td>Risk scoring and register</td><td>Rule-based scoring built per app</td><td>Risk catalog with risks and mitigations in assessments</td><td>No public API to write risks</td><td><span class="chip part">Partial</span></td></tr>
+      <tr><td>Sanctions, exclusion, KYB, credit</td><td>Via integrations (GAM pulls SAM.gov for government)</td><td>Not offered</td><td>Call a screening API from a flow and record the result on the vendor; needs a custom flow</td><td><span class="chip build">Build</span></td></tr>
+      <tr><td>Banking / W-9 / tax collection</td><td>Built with forms and AI Skills</td><td>Not offered as a finance workflow (can be asked in a questionnaire)</td><td>Leave to ERP/procurement tool; pass reference via flow</td><td><span class="chip gap">Gap</span></td></tr>
+
+      <tr class="group"><td colspan="5">Workflow and approval</td></tr>
+      <tr><td>Workflow engine</td><td>Full BPMN: user tasks, parallel paths, sub-processes, timers</td><td>Event-condition-action rule engine (e.g. on submit, auto-create next assessment; on state change, update vendor status). AND-only conditions, configured by Mine</td><td>Branching and multi-system logic in Prismatic flows</td><td><span class="chip part">Partial</span></td></tr>
+      <tr><td>Approval status</td><td>Custom</td><td>Draft → Pending → In evaluation → Approved / Rejected. Any rejected assessment auto-rejects the vendor; all completed moves it to evaluation. Final approval is manual</td><td><code>SystemStatusChange</code> webhook tells downstream systems and the requester</td><td><span class="chip native">Native</span></td></tr>
+      <tr><td>Multi-level approvers, SLAs, escalation</td><td>Native (task routing, timers)</td><td>Owner plus assessment approvers; no spend/tier-based approval chain or escalation timer</td><td>Route approvals in ServiceNow/Jira/Slack, write result back</td><td><span class="chip build">Build</span></td></tr>
+      <tr><td>Notifications and tasks</td><td>Process steps</td><td>In-app and email notifications from rules</td><td>Jira, ServiceNow, Slack, Teams via flows</td><td><span class="chip build">Build</span></td></tr>
+
+      <tr class="group"><td colspan="5">Integration</td></tr>
+      <tr><td>Inbound API</td><td>Developer-built web APIs (API key, OAuth, mTLS)</td><td>Public REST API with company API key: vendors, assessments, collaborators, form submissions, TPRM trigger</td><td>n/a</td><td><span class="chip native">Native</span></td></tr>
+      <tr><td>Outbound events</td><td>No generic webhook model; built as process steps</td><td>Webhooks: <code>TprmTrigger</code>, <code>SystemStatusChange</code></td><td>Webhooks feed Prismatic flows</td><td><span class="chip native">Native</span></td></tr>
+      <tr><td>ERP vendor master</td><td>Connected systems (Salesforce, Dynamics, DB, OpenAPI) or RPA</td><td>Not native</td><td>On approval, create or update supplier in SAP, Oracle, NetSuite, Coupa, Ariba. Connector availability to confirm</td><td><span class="chip build">Build</span></td></tr>
+      <tr><td>RPA for legacy systems</td><td>Appian robots</td><td>Not offered</td><td>Not offered</td><td><span class="chip gap">Gap</span></td></tr>
+
+      <tr class="group"><td colspan="5">Lifecycle</td></tr>
+      <tr><td>Periodic reassessment</td><td>Timers in process</td><td>Reassessment template, review dates and reminders per assessment</td><td>Scheduled flow can create reassessments by tier</td><td><span class="chip part">Partial</span></td></tr>
+      <tr><td>Offboarding</td><td>Whatever was built</td><td>Offboarding template; move to Trash with justification, who and when, restorable; assessments retained for audit</td><td>Revoke SSO app (Okta/Entra), close supplier in ERP, open IT/finance tickets</td><td><span class="chip part">Partial</span></td></tr>
+      <tr><td>Audit trail</td><td>Record events, process history</td><td>Assessment audit log and versioning; trash records who and why</td><td>n/a</td><td><span class="chip native">Native</span></td></tr>
+      <tr><td>Shadow-IT / unknown vendor discovery</td><td>Not in scope</td><td>Discovery from SSO (Google, Okta, Entra), email, AWS, GCP</td><td>n/a</td><td><span class="chip native">Native</span></td></tr>
+      <tr><td>Privacy linkage (ROPA, data map, DPIA)</td><td>Not in scope unless built</td><td>Vendor linked to data types, processing activities and DPIAs</td><td>n/a</td><td><span class="chip native">Native</span></td></tr>
+      <tr><td>Process mining / analytics</td><td>Process HQ (Advanced/Premium)</td><td>Inventory views and dashboards; no process mining</td><td>Export via API to BI</td><td><span class="chip part">Partial</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="two">
+  <div>
+    <h2>Onboarding in MineOS</h2>
+    <div class="flow">
+      <div class="step"><h3>Request <span class="chip build">Build</span></h3><p>Requester submits in Zip, Coupa, ServiceNow or Jira. A flow creates the vendor in MineOS by domain and attaches the request as a form submission. Requesters can also use the in-portal request.</p></div>
+      <div class="step"><h3>Enrich and triage <span class="chip native">Native</span></h3><p>Catalog enrichment and AI autofill fill in certifications, trust center and data types. Panorays adds the cyber rating.</p></div>
+      <div class="step"><h3>Assess <span class="chip native">Native</span></h3><p>The TPRM trigger or a rule creates the right templates for the request, such as Vendor and DPIA, or DORA for ICT providers. The vendor is invited to answer in the collaborator view.</p></div>
+      <div class="step"><h3>Review and decide <span class="chip native">Native</span></h3><p>Any rejected assessment auto-rejects the vendor. Completed ones move it to In evaluation. The owner approves.</p></div>
+      <div class="step"><h3>Hand off <span class="chip build">Build</span></h3><p><code>SystemStatusChange</code> webhook → flow notifies the requester, creates the supplier in the ERP and opens a provisioning ticket.</p></div>
+      <div class="step"><h3>Monitor <span class="chip part">Partial</span></h3><p>Review dates and reminders, Reassessment template, ongoing Panorays rating.</p></div>
+    </div>
+  </div>
+  <div>
+    <h2>Offboarding in MineOS</h2>
+    <div class="flow">
+      <div class="step"><h3>Trigger <span class="chip build">Build</span></h3><p>Contract end or termination in the procurement tool or ERP calls the API. Or the owner moves the vendor to Trash in MineOS, which requires a justification.</p></div>
+      <div class="step"><h3>Offboarding assessment <span class="chip native">Native</span></h3><p>The Offboarding template covers data return or deletion, access removal and certificates of destruction. A rule on state change can create it automatically. Mine configures this rule; it isn't on by default.</p></div>
+      <div class="step"><h3>Revoke and close <span class="chip build">Build</span></h3><p>A flow removes the app in Okta or Entra, closes the supplier in the ERP and opens IT and finance tickets.</p></div>
+      <div class="step"><h3>Retain evidence <span class="chip native">Native</span></h3><p>The vendor stays in Trash with who, when and why. Assessments and the audit log are kept, and the vendor can be restored if re-engaged.</p></div>
+      <div class="step"><h3>Update records <span class="chip native">Native</span></h3><p>The ROPA and data map reflect the vendor's removal.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>What we can build with Integration Builder</h2>
+  <p>Integration Builder is MineOS's embedded iPaaS (built on Prismatic). Flows start from a webhook, a schedule or a MineOS event, and call the MineOS public API and third-party systems. Mine's team builds the flows. The client deploys and configures them from the Automations page in MineOS.</p>
+  <div class="recipes">
+    <div class="recipe"><span class="trig">Webhook in · procurement tool</span><h3>Procurement intake to MineOS</h3><p>A new request in Zip, Coupa, Ariba, ServiceNow or Jira creates the vendor and attaches the request answers. It then fires the TPRM trigger so the right assessments open.</p></div>
+    <div class="recipe"><span class="trig">SystemStatusChange · Approved</span><h3>Approved vendor to ERP</h3><p>Creates or updates the supplier in SAP, Oracle, NetSuite or Coupa. It writes the ERP ID back and notifies the requester.</p></div>
+    <div class="recipe"><span class="trig">SystemStatusChange · Rejected</span><h3>Rejection feedback loop</h3><p>Closes the procurement request with the reason and notifies the requester in Slack or Teams.</p></div>
+    <div class="recipe"><span class="trig">TprmTrigger · any</span><h3>Approvals in ServiceNow or Jira</h3><p>Opens approval tasks for security, legal and finance in the client's ticketing tool. It can route by business unit or tier. The flow writes the outcome back to MineOS.</p></div>
+    <div class="recipe"><span class="trig">Schedule · nightly</span><h3>Screening hook</h3><p>Calls the client's sanctions or credit provider for new vendors and records the result on the vendor. This is a custom flow, and the client supplies the provider and credentials.</p></div>
+    <div class="recipe"><span class="trig">Schedule · monthly</span><h3>Tiered reassessment</h3><p>Finds vendors due for review by tier and creates Reassessment assessments. The vendor contact is invited automatically.</p></div>
+    <div class="recipe"><span class="trig">Webhook in · contract end</span><h3>Offboarding kickoff</h3><p>A contract end date in the CLM or ERP moves the vendor to Trash and creates the Offboarding assessment.</p></div>
+    <div class="recipe"><span class="trig">Offboarding completed</span><h3>Access and supplier shutdown</h3><p>Deprovisions the app in Okta or Entra and blocks the supplier in the ERP. It opens IT and finance close-out tickets.</p></div>
+    <div class="recipe"><span class="trig">Webhook in · Appian</span><h3>Migration and coexistence</h3><p>Back-loads Appian vendor records into MineOS through the API. During a phased cutover, Appian can keep running procurement steps while MineOS owns risk.</p></div>
+  </div>
+</section>
+
+<section class="two">
+  <div>
+    <h2>Questions for the client</h2>
+    <ol>
+      <li>Was the Appian app custom-built, a partner app (such as KPMG TPRM) or Appian Vendor Management? Who maintains it?</li>
+      <li>Walk us through one vendor from request to ERP. Which steps are risk and compliance, and which are procurement or finance?</li>
+      <li>How do vendors interact today: a Portal with links, Appian accounts, or email only?</li>
+      <li>How are approvals routed (by spend, risk tier or business unit), and are there SLAs or escalations?</li>
+      <li>Which systems are integrated, and in which direction? For example ERP, procurement, sanctions screening, DocuSign, ServiceNow, Okta.</li>
+      <li>Do they screen for sanctions, KYB or credit, or collect banking and tax data, inside Appian?</li>
+      <li>What does offboarding look like today? Who triggers it, and what evidence do they keep?</li>
+      <li>What volume do they handle: vendors onboarded per year, active vendors, and reassessment cadence?</li>
+      <li>What triggered the review: cost, maintenance, missing TPRM content, or vendor experience?</li>
+    </ol>
+  </div>
+  <div>
+    <h2>Positioning</h2>
+    <ul>
+      <li>Compare against the app they built, not the whole Appian platform. Appian can do almost anything if someone develops it.</li>
+      <li>Lead with what they'd stop building: questionnaires, the vendor portal, AI autofill, cyber ratings, discovery and audit evidence.</li>
+      <li>Position MineOS as the system of record for third-party risk. The procurement tool or ERP keeps finance onboarding, and Integration Builder connects them.</li>
+      <li>If they rely on a deep BPMN process with multi-tier approvals, propose running approvals in ServiceNow or Jira through flows. Don't claim MineOS has a native equivalent.</li>
+      <li>Don't promise sanctions or KYB screening, banking or tax collection, or RPA as MineOS features.</li>
+    </ul>
+    <h2>Check internally before the call</h2>
+    <ul>
+      <li>The exact Prismatic connector set for the client's ERP and procurement stack.</li>
+      <li>Whether the client can self-serve the Integration Builder designer or only deploys flows Mine builds.</li>
+      <li>Roadmap for public API writes to custom fields, review status and risks.</li>
+      <li>Rule engine: is it configured by customers or only by Mine staff? Is the auto-offboarding rule available?</li>
+      <li>How external collaborators sign in (magic link or password).</li>
+    </ul>
+  </div>
+</section>
+
+<p class="note">Sources: Appian research brief (docs.appian.com 26.x, partner pages) and the MineOS codebase, product templates and internal Slack, reviewed 20 Oct 2026. MineOS rows marked Build depend on a flow Mine delivers. Connector availability and the open items above aren't verified yet.</p>
+</div>
